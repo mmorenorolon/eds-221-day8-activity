@@ -1,6 +1,8 @@
 ---
 title: "data-visualization"
 format: html
+editor_options: 
+  chunk_output_type: inline
 ---
 
 ```{r}
@@ -8,14 +10,76 @@ library(here)
 library(janitor)
 library(stringr)
 library(tidyverse)
+
+library(patchwork)
+library(paletteer)
+library(palmerpenguins)
 ```
 
+```{r}
+#Activity Discussion
+names(penguins)
+
+penguins %>% 
+  group_by(species) %>% 
+  summarise(mean_bill_length = mean(bill_length_mm, na.rm = TRUE))
+
+#`ungroup()`
+penguins %>% 
+  group_by(species) %>% 
+  mutate(mean_bill_length = mean(bill_length_mm, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  mutate(mean_overall_bill_length = mean(bill_length_mm, na.rm = TRUE))
+```
+
+# Task 1: Do your data viz worst
 ```{r}
 space_launches <- read_csv(here("data", "space_launches.csv"), na = "")
+
+names(space_launches)
 ```
 
 ```{r}
- ggplot(space_launches, aes(type, mission)) + 
- geom_dotplot(binaxis = 'y', stackdir = 'center') 
+#Ugly Plot
+windowsFonts(A = windowsFont("Papyrus"))
+img <- jpeg::readJPEG(here::here("figs", "rocket.jpg"))
+
+worst_plot <- ggplot(data = space_launches, aes(x = agency_type, y = type)) + 
+  geom_jitter(shape = 11) +
+  theme(text = element_text(family = "A"), #font
+        panel.background = element_rect(fill = 'lightblue', color = 'purple'),
+         panel.grid.major = element_line(color = 'red', linetype = 'dotted'),
+        panel.grid.minor = element_line(color = 'green'),
+        plot.title = element_text(color = "blue", size = 16, face = "bold"),
+        axis.title.x = element_text(color = "red"),
+        axis.title.y = element_text(color = "red", angle = 90, vjust = 0.5)) +
+  labs(title = "Rocket Science",
+       x = "uhm",
+       y = "no")
+
+((worst_plot / worst_plot) | (worst_plot / worst_plot))
+
+ggsave(here::here("figs", "worst_plot.png"), worst_plot)  
 ```
+
+```{r}
+#The Good Plot
+sf_emissions <- read_csv(here("data",
+"Greenhouse_Gas_Inventory.csv"), na = "")
+
+sf_emissions %>% 
+  group_by(Sector_General) %>% 
+  summarize(total_annual_emissions = sum(Emissions_mtCO2e, na.rm = TRUE))
+
+sf_emissions %>% 
+  group_by(Calendar_Year, Commodity_Type) %>% 
+  summarize(total_annual_emissions = sum(Emissions_mtCO2e, na.rm = TRUE))
+
+sf_emissions %>% 
+  filter(Calendar_Year == 2005:2019) %>% 
+  #stringr::str_detect(sf_emissions$Sector_Detail2, pattern = 'PG&E') %>%
+  #not a charater vector
+  select(Calendar_Year,Sector_Detail2,Emissions_mtCO2e)
+```
+
 
