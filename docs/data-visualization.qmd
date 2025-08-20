@@ -1,0 +1,21 @@
+---
+title: "data-visualization"
+format: html
+---
+
+```{r}
+library(here)
+library(janitor)
+library(stringr)
+library(tidyverse)
+```
+
+```{r}
+space_launches <- read_csv(here("data", "space_launches.csv"), na = "")
+```
+
+```{r}
+ ggplot(space_launches, aes(type, mission)) + 
+ geom_dotplot(binaxis = 'y', stackdir = 'center') 
+```
+
