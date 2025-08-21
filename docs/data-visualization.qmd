@@ -37,49 +37,123 @@ penguins %>%
 space_launches <- read_csv(here("data", "space_launches.csv"), na = "")
 
 names(space_launches)
+
 ```
 
 ```{r}
 #Ugly Plot
-windowsFonts(A = windowsFont("Papyrus"))
-img <- jpeg::readJPEG(here::here("figs", "rocket.jpg"))
+windowsFonts(A = windowsFont("Papyrus")) # font
 
-worst_plot <- ggplot(data = space_launches, aes(x = agency_type, y = type)) + 
-  geom_jitter(shape = 11) +
-  theme(text = element_text(family = "A"), #font
-        panel.background = element_rect(fill = 'lightblue', color = 'purple'),
-         panel.grid.major = element_line(color = 'red', linetype = 'dotted'),
+worst_plot <- ggplot(data = space_launches, aes(x = type, y = mission)) + 
+     geom_count(shape = 8) +
+  theme(axis.text = element_text(family = 'Comic'), #font
+        panel.background = element_rect(fill = NULL),
+        panel.grid.major = element_line(color = 'red', linetype = 'dotted'),
         panel.grid.minor = element_line(color = 'green'),
-        plot.title = element_text(color = "blue", size = 16, face = "bold"),
+        plot.title = element_text(color = "blue", size = 16,
+                                  family = 'Comic Sans MS'),
+        plot.background = element_rect(fill = "orange"),
         axis.title.x = element_text(color = "red"),
         axis.title.y = element_text(color = "red", angle = 90, vjust = 0.5)) +
   labs(title = "Rocket Science",
        x = "uhm",
        y = "no")
 
-((worst_plot / worst_plot) | (worst_plot / worst_plot))
-
 ggsave(here::here("figs", "worst_plot.png"), worst_plot)  
 ```
 
 ```{r}
-#The Good Plot
+#another bad plot
+
+ggplot(space_launches, aes(x = launch_year, y = JD, color = agency)) +
+  geom_point(size = 10, shape = 8, alpha = 0.3) +  # Oversized sparkly stars
+  geom_text(aes(label = variant), angle = 90, size = 6, family = "comic") +  # Vertical Comic Sans
+  theme(
+    plot.background = element_rect(fill = "hotpink"),  # Blinding background
+    panel.background = element_rect(fill = "limegreen"),  # Clashing panel
+    panel.grid.major = element_line(color = "yellow", size = 2, linetype = "dotted"),  # Distracting grid
+    axis.text.x = element_text(angle = 75, size = 14, color = "red"),  # Tilted, oversized, red ticks
+    axis.text.y = element_text(angle = 0, size = 14, color = "blue"),  # Contrasting y ticks
+    axis.title = element_text(size = 20, color = "purple", face = "italic"),  # Loud axis titles
+    legend.position = "bottom",
+    legend.background = element_rect(fill = "orange"),
+    legend.text = element_text(size = 12, family = "comic")
+  ) +
+  coord_flip() +  # Flip for no reason
+  scale_color_manual(values = rep(c("cyan", "magenta", "black", "white"), 10)) +  # Eye-searing palette
+  labs(
+    title = "Space Launches: A Visual Disaster",
+    subtitle = "JD vs. Launch Year with Variant Labels",
+    x = "Julian Date (JD)",
+    y = "Launch Year"
+  )
+```
+
+# Task 2: Wrangling practice with the SF Greenhouse Gas data
+```{r}
+
 sf_emissions <- read_csv(here("data",
 "Greenhouse_Gas_Inventory.csv"), na = "")
 
-sf_emissions %>% 
-  group_by(Sector_General) %>% 
-  summarize(total_annual_emissions = sum(Emissions_mtCO2e, na.rm = TRUE))
+sf_emissions_snake <- sf_emissions %>% 
+  clean_names()
 
-sf_emissions %>% 
-  group_by(Calendar_Year, Commodity_Type) %>% 
-  summarize(total_annual_emissions = sum(Emissions_mtCO2e, na.rm = TRUE))
+part1 <- sf_emissions_snake %>% 
+  group_by(calendar_year, sector_general) %>% 
+  summarize(total_annual_emissions = sum(emissions_mt_co2e, na.rm = TRUE))
 
-sf_emissions %>% 
-  filter(Calendar_Year == 2005:2019) %>% 
-  #stringr::str_detect(sf_emissions$Sector_Detail2, pattern = 'PG&E') %>%
+part2 <- sf_emissions_snake %>% 
+  group_by(calendar_year, commodity_type) %>% 
+  summarize(total_annual_emissions = sum(emissions_mt_co2e, na.rm = TRUE))
+
+part3 <- sf_emissions_snake %>% 
+  filter(calendar_year >= 2005) %>% 
+  filter(str_detect(sector_detail2, 'PG&E')) %>%
   #not a charater vector
-  select(Calendar_Year,Sector_Detail2,Emissions_mtCO2e)
+  select(calendar_year, sector_detail2, emissions_mt_co2e)
 ```
 
+```{r}
+agro_emissions <- sf_emissions_snake %>% 
+  group_by(calendar_year, sector_general) %>% 
+  summarise(avg_emissions = mean(emissions_mt_co2e, na.rm = TRUE)) %>% 
+  ungroup() %>% 
+  filter(str_detect(sector_general, "Agriculture"))
+```
+
+```{r}
+pretty_plot <- ggplot(agro_emissions, aes(x = calendar_year, y = avg_emissions)) +
+  geom_smooth(color = "blue",
+              fill = "lightblue",
+              linetype = "solid",
+              linewidth = 1) +
+  labs(title = "Average Agricultural Emissions by Year",
+       x = "Year",
+       y = "Average Emissions (metric tons)",
+       caption = "Data: San Francisco Communitywide Greenhouse Gas Inventory") +
+  theme_minimal(base_family = "ssp") +
+  theme(
+    plot.title = element_text(family = "merri", 
+                              face = "bold",  
+                              size = 22),
+    plot.caption = element_text(size = 16),
+    axis.title.x = element_text(size = 20),
+    axis.title.y = element_text(size = 20),
+    axis.text.x = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
+    panel.grid.minor = element_blank()) +
+  scale_x_continuous(breaks = c(1990, 2000, 2010, 2020), 
+                     limits = c(1990, 2020))
+  
+# fonts
+install.packages("showtext")
+
+# Load and register fonts
+library(showtext)
+font_add_google("Merriweather", "merri")
+font_add_google("Source Sans Pro", "ssp")
+showtext_auto()
+
+ggplot2::ggsave(here("figs", "pretty_plot.png"), pretty_plot)
+```
 
